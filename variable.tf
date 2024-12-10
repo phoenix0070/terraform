@@ -1,6 +1,6 @@
 variable "size" {
     type = string
-    default = "ami53b12d3152c0cc71"
+    default = "ami-0614680123427b75e"
   
 }
 
