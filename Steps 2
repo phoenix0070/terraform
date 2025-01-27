@@ -1,0 +1,121 @@
+PCF Deployment Architecture Explanation
+
+The Pivotal Cloud Foundry (PCF) architecture is designed to simplify deploying, running, and scaling cloud-native applications. Here’s how a typical PCF deployment architecture would look, based on the CI/CD pipeline discussed:
+
+PCF Deployment Architecture Overview
+
+PCF uses a microservices-based architecture to host, manage, and scale applications. Key components in the deployment architecture include:
+	1.	Developer Workstation:
+	•	Developers write code, which is committed to a version control system (e.g., GitHub/GitLab).
+	2.	CI/CD Pipeline Tools:
+	•	Jenkins for CI: Automates build, test, and artifact creation.
+	•	Harness for CD: Manages automated deployments to PCF environments.
+	3.	PCF Foundation:
+	•	Comprises runtime components and platform services for deploying and managing applications.
+	•	Example PCF layers:
+	•	Diego Cells: Run application instances (containers).
+	•	Router: Routes incoming HTTP/HTTPS traffic to the correct application instance.
+	•	BOSH Director: Manages the underlying infrastructure.
+	•	Blobstore: Stores application packages, buildpacks, and other artifacts.
+	4.	Load Balancer and DNS:
+	•	Directs external traffic to the PCF router for load distribution and routing.
+	5.	Application Environment:
+	•	Applications are deployed to specific spaces and organizations within PCF.
+	•	PCF environments typically include:
+	•	Development: Internal testing and experimentation.
+	•	Staging/QA: Pre-production testing.
+	•	Production: Live, customer-facing environment.
+
+Deployment Architecture Workflow with PCF Example
+
+1. Code Flow to Artifact:
+	•	Developer Workflow:
+	•	A developer writes a Spring Boot microservice (e.g., customer-service) and pushes the code to GitHub.
+	•	Example GitHub repository: github.com/org/customer-service.
+	•	Jenkins CI Pipeline:
+	•	Jenkins detects the code push via a webhook.
+	•	It builds the application using Maven, runs unit tests, and packages the application into a deployable artifact (customer-service.jar).
+
+2. Artifact Flow to Deployment:
+	•	Harness CD Pipeline:
+	•	Harness fetches the .jar artifact from Artifactory.
+	•	The deployment process starts with Harness targeting a specific PCF environment (e.g., Dev, QA, or Production).
+
+3. PCF Deployment Process:
+	•	Harness uses PCF CLI commands or APIs to deploy the application:
+
+cf push customer-service -p customer-service.jar --random-route
+
+
+	•	PCF Deployment Details:
+	•	Organization: finance-org
+	•	Space: production-space
+	•	Instances: 3 (3 containers running the app in Diego cells)
+	•	Memory per Instance: 1 GB
+	•	PCF automatically handles:
+	•	Routing: Generates a route like customer-service.apps.prod.example.com.
+	•	Scaling: Adds or removes instances based on demand.
+	•	Service Binding: Connects the application to external services (e.g., databases).
+
+4. External Traffic Flow:
+	•	A load balancer directs traffic to the PCF router.
+	•	The router forwards requests to one of the available instances in the Diego cells.
+
+PCF Deployment Architecture Diagram (Example)
+
+Here’s a textual representation of the architecture:
+
+Developer Workstation
+       |
+  [Code Push]
+       |
+   GitHub/GitLab
+       |
+   [CI Pipeline]
+       |
+     Jenkins
+  (Build & Test)
+       |
+   Artifactory
+   (Artifact Store)
+       |
+  [CD Pipeline]
+       |
+     Harness
+  (Trigger Deploy)
+       |
+       v
+  +---------------------+
+  |   PCF Foundation    |
+  |---------------------|
+  |    Load Balancer    |
+  |       Router        |
+  |---------------------|
+  |    Diego Cells      |
+  | (App Instances/Pods)|
+  |---------------------|
+  |   Service Bindings  |
+  +---------------------+
+       |
+  [External Traffic]
+       |
+Customer Requests (e.g., `customer-service.apps.prod.example.com`)
+
+Example Details
+	•	Application Name: customer-service
+	•	PCF Foundation:
+	•	Hosted on AWS or private data center infrastructure.
+	•	Load balancer handles domain routing (e.g., *.apps.prod.example.com).
+	•	Routing Example:
+	•	User makes a request to https://customer-service.apps.prod.example.com.
+	•	The request flows through the PCF Router, which routes it to an available application instance in Diego Cells.
+	•	Scaling Example:
+	•	PCF scales customer-service instances from 3 to 6 automatically during high traffic using configured autoscaling rules.
+
+Key Benefits of This Architecture
+	1.	Platform Independence: PCF abstracts infrastructure, enabling applications to run on any cloud or data center.
+	2.	Efficient Traffic Routing: The PCF router efficiently routes traffic to the correct application instance.
+	3.	Autoscaling: Diego cells manage scaling based on demand.
+	4.	Service Integration: Easy binding with external databases, message brokers, etc.
+
+This architecture ensures a robust, scalable, and automated deployment process.
