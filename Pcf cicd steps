@@ -1,0 +1,180 @@
+Here’s a step-by-step guide with example code for deploying the application (customer-service) to PCF using the described CI/CD pipeline:
+
+1. Jenkins Pipeline Code (Declarative Pipeline for CI)
+
+Below is an example of a Jenkinsfile to automate the CI process.
+
+pipeline {
+    agent any
+    environment {
+        ARTIFACTORY_URL = 'https://artifactory.example.com'
+        REPO = 'customer-service-repo'
+        BUILD_DIR = 'target'
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/org/customer-service.git'
+            }
+        }
+        stage('Build and Test') {
+            steps {
+                script {
+                    sh './mvnw clean package -DskipTests=false'
+                }
+            }
+        }
+        stage('Static Code Analysis') {
+            steps {
+                // Example: SonarQube analysis
+                sh 'sonar-scanner -Dsonar.projectKey=customer-service'
+            }
+        }
+        stage('Publish Artifact') {
+            steps {
+                // Uploading to Artifactory
+                sh """
+                curl -u <user>:<password> -T ${BUILD_DIR}/customer-service.jar \
+                    ${ARTIFACTORY_URL}/repository/${REPO}/customer-service.jar
+                """
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Build completed successfully.'
+        }
+        failure {
+            echo 'Build failed!'
+        }
+    }
+}
+
+2. Harness CD Pipeline Code
+
+Harness can deploy PCF applications using its YAML-based configurations. Here’s an example configuration:
+
+pipeline:
+  name: PCF Deployment
+  stages:
+    - stage:
+        name: Deploy to PCF
+        type: DEPLOYMENT
+        spec:
+          service:
+            serviceRef: customer-service
+          environment:
+            environmentRef: production
+          infrastructure:
+            type: PivotalCloudFoundry
+            spec:
+              connectorRef: pcf-connector
+              organization: finance-org
+              space: production-space
+          execution:
+            steps:
+              - step:
+                  name: Fetch Artifact
+                  type: ARTIFACT
+                  spec:
+                    artifactRef: customer-service-artifact
+              - step:
+                  name: Deploy to PCF
+                  type: PIVOTAL_CLOUD_FOUNDRY
+                  spec:
+                    applicationName: customer-service
+                    artifactPath: customer-service.jar
+                    cfCliVersion: V7
+                    instances: 3
+                    memory: 1024M
+                    diskQuota: 1024M
+                    routeMaps:
+                      - host: customer-service
+                        domain: apps.prod.example.com
+
+3. PCF Manifest File (manifest.yml)
+
+A manifest.yml file defines application deployment details for PCF. This file is necessary for the cf push command.
+
+applications:
+  - name: customer-service
+    memory: 1G
+    disk_quota: 1G
+    instances: 3
+    path: target/customer-service.jar
+    buildpacks:
+      - java_buildpack
+    routes:
+      - route: customer-service.apps.prod.example.com
+    env:
+      SPRING_PROFILES_ACTIVE: production
+
+4. PCF CLI Command
+
+To manually deploy the application using the PCF CLI, use the following commands:
+	1.	Login to PCF:
+
+cf login -a https://api.sys.example.com -u <username> -p <password> -o finance-org -s production-space
+
+
+	2.	Push the Application:
+
+cf push -f manifest.yml
+
+
+	3.	Verify Deployment:
+
+cf apps
+
+5. Kubernetes Manifest File (For Kubernetes Deployment)
+
+If deploying to Kubernetes instead of PCF, here’s an equivalent deployment.yaml:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: customer-service
+  template:
+    metadata:
+      labels:
+        app: customer-service
+    spec:
+      containers:
+      - name: customer-service
+        image: registry.example.com/customer-service:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: production
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: customer-service
+
+To deploy:
+
+kubectl apply -f deployment.yaml
+
+End-to-End Workflow
+	1.	CI Pipeline (Jenkins):
+	•	Pull code → Build artifact → Push to Artifactory.
+	2.	CD Pipeline (Harness):
+	•	Fetch artifact → Deploy to PCF or Kubernetes.
+	3.	Deployment Validation:
+	•	Verify deployed app on https://customer-service.apps.prod.example.com.
+
+This approach automates the entire process, ensuring a smooth deployment.
