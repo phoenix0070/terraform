@@ -1,0 +1,61 @@
+Pivotal Cloud Foundry (PCF) is a platform-as-a-service (PaaS) that simplifies application deployment and management. Applications deployed in PCF do not rely on container images directly like Docker but instead follow a distinct architecture and process for building and running applications. Here’s an overview:
+
+PCF Deployment Architecture
+	1.	Applications in PCF:
+	•	Applications are deployed as source code or precompiled artifacts (e.g., JAR, WAR, or Node.js apps).
+	•	Developers push their code to PCF using the cf CLI.
+	2.	Buildpacks:
+	•	PCF uses buildpacks to transform the application source code into a runnable artifact.
+	•	Buildpacks detect the application type (e.g., Java, Python, Node.js) and apply the necessary dependencies and configuration.
+	3.	Droplets:
+	•	Once the buildpack processes the application, it creates a droplet—a package containing the application and its runtime dependencies.
+	•	The droplet is stored in PCF’s Blobstore and then executed within a Diego container.
+	4.	Diego Cells:
+	•	PCF uses Diego as its container orchestration system.
+	•	The application is deployed to a Diego container on one of the Diego Cells, which are the worker nodes in PCF.
+
+Steps to Deploy Applications in PCF
+	1.	Push Application:
+	•	Developers use the cf push command to deploy their application.
+	•	Example:
+
+cf push my-app -p path/to/app
+
+
+	2.	Build Process:
+	•	PCF selects an appropriate buildpack based on the application type.
+	•	The buildpack installs the necessary dependencies and configures the environment.
+	•	A droplet is created.
+	3.	Application Deployment:
+	•	The droplet is pushed to the Blobstore.
+	•	Diego schedules and runs the application in a container.
+	4.	Route Assignment:
+	•	PCF maps a route (URL) to the application so that it can be accessed externally.
+
+PCF Application Architecture
+	•	Cloud Controller: Manages application lifecycle (staging, starting, stopping).
+	•	Router: Handles routing requests to applications based on the route (URL).
+	•	Diego Cells: Run applications in containers, managed by the Diego orchestrator.
+	•	Blobstore: Stores application droplets, buildpacks, and other metadata.
+	•	Service Broker: Connects applications with services (e.g., databases, messaging systems).
+
+How Images are Built in PCF
+
+PCF doesn’t use traditional Docker images but instead relies on droplets created by buildpacks. If containerization is required, PCF has integrations with Kubernetes or supports deploying custom Docker containers.
+	1.	Using Buildpacks:
+	•	Buildpacks are the default method for building and packaging applications.
+	•	A buildpack automatically creates the droplet.
+	2.	Using Docker Images:
+	•	PCF also allows developers to push Docker images instead of source code.
+	•	Example:
+
+cf push my-app --docker-image my-image
+
+Key Advantages of PCF Architecture
+	1.	Developer Productivity: Abstracts infrastructure management, allowing developers to focus on code.
+	2.	Buildpacks: Simplifies dependency management.
+	3.	Resilience and Scaling: Automatic container orchestration with Diego.
+	4.	Integrated Services: Easy binding of applications to services like databases and messaging queues.
+
+Let me know if you’d like further details or visualizations of the architecture!
+
